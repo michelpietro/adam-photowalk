@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chrono-Walk: Photo Sequence Challenge</title>
+  <style>
+    :root {
+      --bg-color: #0f172a;
+      --card-bg: #1e293b;
+      --text-color: #f8fafc;
+      --accent-color: #38bdf8;
+      --success-color: #22c55e;
+      --error-color: #ef4444;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      margin: 0;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+    }
+
+    header {
+      text-align: center;
+      max-width: 700px;
+      margin-bottom: 2rem;
+    }
+
+    h1 {
+      color: var(--accent-color);
+      margin-bottom: 0.5rem;
+    }
+
+    p {
+      color: #94a3b8;
+      line-height: 1.5;
+    }
+
+    .gallery-container {
+      display: flex;
+      gap: 15px;
+      flex-wrap: wrap;
+      justify-content: center;
+      max-width: 1000px;
+      margin-bottom: 2rem;
+    }
+
+    .photo-card {
+      background: var(--card-bg);
+      border: 2px solid #334155;
+      border-radius: 10px;
+      padding: 10px;
+      width: 220px;
+      cursor: grab;
+      user-select: none;
+      transition: transform 0.2s ease, border-color 0.2s ease;
+    }
+
+    .photo-card:active {
+      cursor: grabbing;
+    }
+
+    .photo-card.dragging {
+      opacity: 0.5;
+      transform: scale(0.95);
+    }
+
+    .photo-card img {
+      width: 100%;
+      height: 160px;
+      object-fit: cover;
+      border-radius: 6px;
+      pointer-events: none;
+    }
+
+    .photo-card .label {
+      text-align: center;
+      margin-top: 10px;
+      font-weight: 600;
+      font-size: 0.9rem;
+      color: #cbd5e1;
+    }
+
+    .controls {
+      display: flex;
+      gap: 15px;
+      align-items: center;
+    }
+
+    .btn {
+      padding: 0.75rem 1.5rem;
+      background-color: var(--accent-color);
+      color: #0f172a;
+      border: none;
+      border-radius: 8px;
+      font-weight: 700;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: background-color 0.2s ease;
+    }
+
+    .btn:hover {
+      background-color: #7dd3fc;
+    }
+
+    #result {
+      font-weight: bold;
+      font-size: 1.1rem;
+      min-height: 24px;
+    }
+
+    .success { color: var(--success-color); }
+    .error { color: var(--error-color); }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>📸 Chrono-Walk Photo Challenge</h1>
+    <p>Analyze the shadows, sun angles, and lighting cues to arrange the photo walk snapshots in chronological order from morning to sunset. Drag and drop the cards to reorder them!</p>
+  </header>
+
+  <div class="gallery-container" id="gallery">
+    <!-- Photos shuffled dynamically -->
+  </div>
+
+  <div class="controls">
+    <button class="btn" onclick="checkOrder()">Verify Sequence</button>
+    <button class="btn" style="background-color: #475569; color: #fff;" onclick="shufflePhotos()">Shuffle</button>
+  </div>
+
+  <p id="result"></p>
+
+  <script>
+    const photos = [
+      { id: "photo1", src: "photo1.jpg", title: "Morning Light", order: 1 },
+      { id: "photo2", src: "photo2.jpg", title: "Midday Sun", order: 2 },
+      { id: "photo3", src: "photo3.jpg", title: "Late Afternoon", order: 3 },
+      { id: "photo4", src: "photo4.jpg", title: "Sunset Shadows", order: 4 }
+    ];
+
+    let currentOrder = [...photos];
+
+    function renderGallery() {
+      const container = document.getElementById('gallery');
+      container.innerHTML = '';
+      
+      currentOrder.forEach((photo, index) => {
+        const card = document.createElement('div');
+        card.className = 'photo-card';
+        card.draggable = true;
+        card.dataset.index = index;
+
+        card.innerHTML = `
+          <img src="${photo.src}" alt="${photo.title}">
+          <div class="label">${photo.title}</div>
+        `;
+
+        card.addEventListener('dragstart', handleDragStart);
+        card.addEventListener('dragover', handleDragOver);
+        card.addEventListener('drop', handleDrop);
+        card.addEventListener('dragend', handleDragEnd);
+
+        container.appendChild(card);
+      });
+    }
+
+    let dragSrcIndex = null;
+
+    function handleDragStart(e) {
+      dragSrcIndex = this.dataset.index;
+      this.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+    }
+
+    function handleDragOver(e) {
+      if (e.preventDefault) e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      return false;
+    }
+
+    function handleDrop(e) {
+      e.stopPropagation();
+      const dropIndex = this.dataset.index;
+
+      if (dragSrcIndex !== dropIndex) {
+        const draggedItem = currentOrder[dragSrcIndex];
+        currentOrder.splice(dragSrcIndex, 1);
+        currentOrder.splice(dropIndex, 0, draggedItem);
+        renderGallery();
+      }
+      return false;
+    }
+
+    function handleDragEnd() {
+      this.classList.remove('dragging');
+    }
+
+    function checkOrder() {
+      const isCorrect = currentOrder.every((item, idx) => item.order === idx + 1);
+      const resultEl = document.getElementById('result');
+      if (isCorrect) {
+        resultEl.textContent = "🎉 Correct! You successfully solved the chronological sequence!";
+        resultEl.className = "success";
+      } else {
+        resultEl.textContent = "❌ Not quite right yet. Pay close attention to the position of the sun and shadows!";
+        resultEl.className = "error";
+      }
+    }
+
+    function shufflePhotos() {
+      currentOrder.sort(() => Math.random() - 0.5);
+      document.getElementById('result').textContent = "";
+      renderGallery();
+    }
+
+    // Initial shuffle and render
+    shufflePhotos();
+  </script>
+</body>
+</html>
